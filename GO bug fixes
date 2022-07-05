@@ -1,1 +1,75 @@
+library(org.Hs.eg.db)
+library(BiocManager)
+library(AnnotationDbi)
+library(dplyr)
+library(clusterProfiler)
+
+TTP <- as.data.frame(TTP_Differential_expression_Julia_analysis)
+#fixed, used pull (dplyr) instead of names
+gene <- pull(gene.df, ENTREZID)[abs(TTP$log2FoldChange) > .1]
+View(gene)
+
+gene.df <- bitr(gene, fromType = "ENTREZID",
+                toType = c("ENSEMBL", "SYMBOL"),
+                OrgDb = org.Hs.eg.db)
+#fixed bc gene list fixed
+ggo <- groupGO(gene     = gene,
+               OrgDb    = org.Hs.eg.db,
+               ont      = "MF",
+               level    = 2,
+               readable = TRUE)
+head(ggo)
+barplot(ggo)
+
+ego <- enrichGO(gene = gene, 
+                universe =names(gene.df),
+                OrgDb = org.Hs.eg.db,
+                ont = "MF",
+                pAdjustMethod = "BH",
+                pvalueCutoff = 0.01,
+                qvalueCutoff = 0.05)
+
+#fixed
+ego <- enrichGO(gene          = gene,
+                universe      = names(gene),
+                OrgDb         = org.Hs.eg.db,
+                ont           = "MF",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.01,
+                qvalueCutoff  = 0.05)
+head(summary(ego))
+#worked!
+ego2 <- enrichGO(gene         = TTP$ID,
+                 OrgDb         = org.Hs.eg.db,
+                 keyType       = 'ENSEMBL',
+                 ont           = "BP",
+                 pAdjustMethod = "BH",
+                 pvalueCutoff  = 0.01,
+                 qvalueCutoff  = 0.05)
+head(summary(ego2))
+dotplot(ego2, showCategory = 10,
+        font.size = 10)
+#also worked!
+ego3 <- enrichGO(gene         = TTP$Gene.name,
+                 OrgDb         = org.Hs.eg.db,
+                 keyType       = 'SYMBOL',
+                 ont           = "MF",
+                 pAdjustMethod = "BH",
+                 pvalueCutoff  = 0.01,
+                 qvalueCutoff  = 0.05)
+head(summary(ego3))
+
+
+#dope
+dotplot(ego2, showCategory=25,
+        font.size = 5)
+
+#didn't work
+enrichMap(ego)
+
+#didn't work
+cnetplot(ego3, foldChange=TTP$log2FoldChange)
+
+#didn't work
+plotGOgraph(ego)
 
